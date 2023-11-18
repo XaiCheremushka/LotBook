@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     WEBAPP_HOST: str
     WEBAPP_PORT: int = 80
 
-    #PATH_FIREBASE_KEY: str
+    PATH_FIREBASE_KEY: str
 
     class Config:
         env_file = os.getcwd() + r'\tgbot\utiles\secretData\.env'
