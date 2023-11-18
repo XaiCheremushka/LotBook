@@ -34,7 +34,6 @@ def webdriver_parse():
 
         print(result)
 
-
         time.sleep(5)
     except Exception as ex:
         print(ex)
