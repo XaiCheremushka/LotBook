@@ -1,6 +1,6 @@
 # import firebase_admin
 import json
-from typing import List
+from typing import List, Dict
 
 # from firebase_admin import credentials
 
@@ -21,7 +21,7 @@ firestore_client = AsyncClient(
 )
 
 
-async def create_book(list: List[List], info: List) -> None:
+async def create_book(content_sheet, info: Dict) -> None:
     """
     Функция create_book добавляет книгу в базу данных вместе с оглавлением.
 
@@ -30,14 +30,49 @@ async def create_book(list: List[List], info: List) -> None:
     :return: None
     """
 
-    await firestore_client.collection("Book").document(info[0]).set({
-        "ISBN": info[1], "autor": info[2], "total_pages": info[3], "year_of_publication": info[4]
+    # await firestore_client.collection("Book").document(info[0]).set({
+    #     "ISBN": info[1], "autor": info[2], "total_pages": info[3], "year_of_publication": info[4]
+    # })
+    #
+    # for i in range(0, len(list)):
+    #     for j in range(0, len(list[i])):
+    #         await firestore_client.collection("Book").document(info[0]).collection("sections").document(
+    #             f"{i} {list[i][0]}").document(f"{j+1} {list[i][j]}")
+
+    await firestore_client.collection("Book").document(info["title"]).set({
+        "ISBN": info["ISBN"], "autor": info["autor"], "total_pages": info["total_pages"], "year_of_publication": info[4]
     })
 
-    for i in range(0, len(list)):
-        for j in range(0, len(list[i])):
-            await firestore_client.collection("Book").document(info[0]).collection("sections").document(
-                f"{i} {list[i][0]}").document(f"{j+1} {list[i][j]}")
+
+    for i in range(0, len(content_sheet)):
+        if isinstance(content_sheet[i], list) and len(content_sheet[i]) > 1:
+            element = content_sheet[i][0]
+            for j in range(1, len(content_sheet[i])):
+                if isinstance(content_sheet[i][j], list) and len(content_sheet[i][j]) > 1:
+                    element_2 = content_sheet[i][j][0]
+                    for l in range(1, len(content_sheet[i][j])):
+                        if isinstance(content_sheet[i][j][l], list) and len(content_sheet[i][j][l]) > 1:
+                            element_3 = content_sheet[i][j][l][0]
+                            # Можно увеличить дерево в будущем, дописав код здесь
+                            await firestore_client.collection("Book").document(info["title"]).collection(
+                                str(i + 1) + " " + content_sheet[i][0]).document(
+                                str(j + 1) + " " + content_sheet[i][j][0]).collection(
+                                str(l + 1) + " " + content_sheet[i][j][l][0])
+                        else:
+                            await firestore_client.collection("Book").document(info["title"]).collection(
+                                str(i + 1) + " " + content_sheet[i][0]).document(
+                                str(j + 1) + " " + content_sheet[i][j][0]).collection(
+                                str(l + 1) + " " + content_sheet[i][j][l][0])
+
+                else:
+                    await firestore_client.collection("Book").document(info["title"]).collection(
+                        str(i + 1) + " " + content_sheet[i][0]).document(str(j + 1) + " " + content_sheet[i][j][0]).collection(
+                        "questions")
+
+        else:
+            await firestore_client.collection("Book").document(info["title"]).collection(
+                str(i + 1) + " " + content_sheet[i][0])
+
 
 
 async def get_table_of_content(book_name: str) -> List[List]:
@@ -72,3 +107,5 @@ async def add_questions_to_book(book_name: str, questions: List[List], chapter: 
     # else:
     #     await firestore_client.collection("Book").document(book_name).collection("sections").document(
     #         f"{i} {list[i][0]}").document(f"{j} {list[i][j]}")
+
+
