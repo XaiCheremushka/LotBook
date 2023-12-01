@@ -1,13 +1,12 @@
-import time
-
-import requests, re
+import re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
+
 # url_Litres = "https://www.litres.ru/book/uilyam-shirer/vzlet-i-padenie-tretego-reyha-19297129/"
-url_Litres = "https://www.litres.ru/book/anita-shapira-326732/istoriya-izrailya-ot-istokov-sionistskogo-dvizheniya-69510613/"
+# url_Litres = "https://www.litres.ru/book/anita-shapira-326732/istoriya-izrailya-ot-istokov-sionistskogo-dvizheniya-69510613/"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -21,7 +20,6 @@ headers = {
 class OldPage:
 
     def create_content_sheet(self, html_code):
-        print("content")
         soup = html_code
 
         result = []
@@ -54,7 +52,6 @@ class OldPage:
 
 
     def parse_info(self, html_code):
-        print("info")
         info = {
             "title": html_code.find('h1', itemprop="name").get_text(),
             "autor": html_code.find('div', class_="biblio_book_author").get_text()[6:],
@@ -96,7 +93,6 @@ class OldPage:
 class NewPage:
 
     def create_content_sheet(self, html_code):
-        print("content")
         soup = html_code
 
         result = []
@@ -104,9 +100,9 @@ class NewPage:
         for item in soup.find_all('div'):
             if not bool(item.attrs):
                 pass
-            elif item["class"] == "BookTableContent-module__chapter_firstDeep_3oO5D":
+            elif "BookTableContent-module__chapter_firstDeep_3oO5D" in item['class']:
                 result.append([item.get_text()])
-            elif item["class"] == "BookTableContent-module__chapter_secondDeep_2RGMm":
+            elif "BookTableContent-module__chapter_secondDeep_2RGMm" in item['class']:
                 result[-1].append([item.get_text()])
             else:
                 result[-1][-1].append([item.get_text()])
@@ -115,10 +111,9 @@ class NewPage:
 
 
     def parse_info(self, html_code):
-        print("info")
         info = {
-            "title": html_code.find('h1', itemprop="name").get_text(),
-            "autor": html_code.select_one('div.Truncate__truncated_2nRnu > span').get_text(),
+            "title": html_code.find('h1', class_="BookCard-module__book__mainInfo__title_2zz4M").get_text(),
+            "autor": html_code.select_one('div.BookAuthor-module__author__info_Kgg0a span').get_text(),
             "date_of_publication": None,
             "total_pages": None,
             "ISBN": None
@@ -130,7 +125,7 @@ class NewPage:
 
             match character.find('div', class_='CharacteristicsBlock-module__characteristic__title_3_QiC').get_text():
                 case "Дата перевода: ":
-                    print(character.find_all('span')[1])
+                    print(character.find_all('span')[1].get_text())
                     info["date_of_publication"] = character.find_all('span')[1].get_text()
                 case "Объем: ":
                     info["total_pages"] = re.findall(r'\d+', character.find_all('span')[1].get_text())[0]
@@ -154,9 +149,6 @@ class NewPage:
             result = soup.find("div", class_="BookTableContent-module__bookTableContent_cOJ8T")
             content_sheet = self.create_content_sheet(result)
 
-            for r in content_sheet:
-                print(r)
-
             return content_sheet, info
 
 
@@ -171,40 +163,23 @@ def parse(url: str):
         page = NewPage()
         content_sheet, info = page.webdriver_parse(url, driver)
         print("Успешно распашена новая страница!")
-        print("Оглавление")
-        print(item for item in content_sheet)
-        print("Остальная информация")
-        print(item for item in info)
+
+        return content_sheet, info
 
     except Exception as ex:
         print(ex)
         try:
             page = OldPage()
             content_sheet, info = page.webdriver_parse(url, driver)
-            print("Успешно распашена старая страница!")
-            print("Оглавление")
-            print(item for item in content_sheet)
-            print("Остальная информация")
-            print(item for item in info)
+            print("Успешно распаршена старая страница!")
+
+            return content_sheet, info
+
         except Exception as ex:
             print(ex)
-            print("Ошибка. Проверьте есть ли на этой странице оглавление и остальная информация о книге"
+            print("Ошибка. Проверьте есть ли на этой странице оглавление и остальная информация о книге "
                   "корректна. На странице должны присутствовать: 'Оглавление', 'Автор', 'Объем', 'Дата перевода' или "
                   "'Дата написания', а также ISBN.")
     finally:
         driver.close()
         driver.quit()
-
-
-
-
-
-    # Проверить URL на наличие audiobook, не парсить если оно есть.
-
-
-
-parse(url_Litres)
-
-# padge = requests.get(url_Litres, headers=headers)
-# soup = BeautifulSoup(padge.text, "html.parser")
-# print(parse_info(soup))

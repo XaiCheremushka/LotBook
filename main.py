@@ -5,6 +5,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
 
 from tgbot.handlers import start
+from tgbot.utiles.questions.create_new_book import create_new_book
 from tgbot.utiles.secretData.config import config
 
 
@@ -33,6 +34,15 @@ async def on_shutdown(dispatcher):
 @dp.message_handler(commands=['admin'])
 async def admin_panel(message: types.Message):
     await message.answer("Выберите нужную команду", reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
+
+
+@dp.message_handler(text=["Добавить книгу"])
+@dp.message_handler(commands=['Добавить книгу'])
+async def statisticUserBack(message: types.Message):
+    url_Litres = "https://www.litres.ru/book/aleksey-georgievich/krasnye-partizany-na-vostoke-rossii-1918-1922-deviaci-69367450/"
+    await message.answer('Подождите. Идёт создание книги в Базе Данных.')
+    await create_new_book(url_Litres)
+    await message.answer('Данные отправлены')
 
 
 def show_button(list_menu):

@@ -1,16 +1,11 @@
-# import firebase_admin
 import json
-from typing import List, Dict
-
-# from firebase_admin import credentials
+from typing import List
 
 from google.cloud.firestore import AsyncClient
 # from google.cloud import firestore
 from google.oauth2 import service_account
 from tgbot.utiles.secretData.config import config
 
-# cred = credentials.Certificate("path/to/serviceAccountKey.json")
-# firebase_admin.initialize_app(cred)
 
 with open(fr"{config.PATH_FIREBASE_KEY}") as json_file:
     json_data = json.load(json_file)
@@ -21,57 +16,44 @@ firestore_client = AsyncClient(
 )
 
 
-async def create_book(content_sheet, info: Dict) -> None:
+async def create_book(content_sheet, info) -> None:
     """
     Функция create_book добавляет книгу в базу данных вместе с оглавлением.
 
-    :param list: Двумерный список с оглавлением книги.
+    :param content_sheet: Двумерный список с оглавлением книги.
     :param info: Список с информацией по книге [название, ISBN, автор, количество страниц, дата выпуска].
     :return: None
     """
 
-    # await firestore_client.collection("Book").document(info[0]).set({
-    #     "ISBN": info[1], "autor": info[2], "total_pages": info[3], "year_of_publication": info[4]
-    # })
-    #
-    # for i in range(0, len(list)):
-    #     for j in range(0, len(list[i])):
-    #         await firestore_client.collection("Book").document(info[0]).collection("sections").document(
-    #             f"{i} {list[i][0]}").document(f"{j+1} {list[i][j]}")
-
-    await firestore_client.collection("Book").document(info["title"]).set({
-        "ISBN": info["ISBN"], "autor": info["autor"], "total_pages": info["total_pages"], "year_of_publication": info[4]
+    await firestore_client.collection("Books").document(info["title"]).set({
+        "ISBN": info["ISBN"], "autor": info["autor"], "total_pages": info["total_pages"], "date_of_publication": info["date_of_publication"]
     })
-
 
     for i in range(0, len(content_sheet)):
         if isinstance(content_sheet[i], list) and len(content_sheet[i]) > 1:
-            element = content_sheet[i][0]
             for j in range(1, len(content_sheet[i])):
                 if isinstance(content_sheet[i][j], list) and len(content_sheet[i][j]) > 1:
-                    element_2 = content_sheet[i][j][0]
                     for l in range(1, len(content_sheet[i][j])):
                         if isinstance(content_sheet[i][j][l], list) and len(content_sheet[i][j][l]) > 1:
-                            element_3 = content_sheet[i][j][l][0]
                             # Можно увеличить дерево в будущем, дописав код здесь
-                            await firestore_client.collection("Book").document(info["title"]).collection(
+                            await firestore_client.collection("Books").document(info["title"]).collection(
                                 str(i + 1) + " " + content_sheet[i][0]).document(
                                 str(j + 1) + " " + content_sheet[i][j][0]).collection(
-                                str(l + 1) + " " + content_sheet[i][j][l][0])
+                                str(l + 1) + " " + content_sheet[i][j][l][0]).document().set({})
                         else:
-                            await firestore_client.collection("Book").document(info["title"]).collection(
+                            await firestore_client.collection("Books").document(info["title"]).collection(
                                 str(i + 1) + " " + content_sheet[i][0]).document(
                                 str(j + 1) + " " + content_sheet[i][j][0]).collection(
-                                str(l + 1) + " " + content_sheet[i][j][l][0])
+                                str(l + 1) + " " + content_sheet[i][j][l][0]).document().set({})
 
                 else:
-                    await firestore_client.collection("Book").document(info["title"]).collection(
+                    await firestore_client.collection("Books").document(info["title"]).collection(
                         str(i + 1) + " " + content_sheet[i][0]).document(str(j + 1) + " " + content_sheet[i][j][0]).collection(
-                        "questions")
+                        "questions").document().set({})
 
         else:
-            await firestore_client.collection("Book").document(info["title"]).collection(
-                str(i + 1) + " " + content_sheet[i][0])
+            await firestore_client.collection("Books").document(info["title"]).collection(
+                str(i + 1) + " " + content_sheet[i][0]).document().set({})
 
 
 

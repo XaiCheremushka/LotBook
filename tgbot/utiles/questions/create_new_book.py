@@ -1,7 +1,10 @@
-from tgbot.utiles.questions.parsing import webdriver_parse
+import asyncio
+
+from tgbot.utiles.database.firebase import create_book
+from tgbot.utiles.questions.parsing import parse
 
 
-async def create_new_book(url: str) -> str:
+async def create_new_book(url: str):
     """
     Функция create_new_book добавляет новую кингу в базу данных со всей информацией по книге, в
     том числе и оглавление.
@@ -11,6 +14,13 @@ async def create_new_book(url: str) -> str:
     return: Оглавление.
     """
 
-    level, title, result = webdriver_parse(url)
+    content_sheet, info = parse(url)
+    try:
+        await create_book(content_sheet, info)
+        print("Данные успешно отправлены")
+    except Exception as ex:
+        print("Ошибка отправки данных в БД")
+        print(ex)
+
 
 
