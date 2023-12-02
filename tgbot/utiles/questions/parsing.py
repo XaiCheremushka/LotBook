@@ -1,20 +1,17 @@
-import re
+import re, os
+
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
+from tgbot.utiles.help_func.custom_exception import *
 
-# url_Litres = "https://www.litres.ru/book/uilyam-shirer/vzlet-i-padenie-tretego-reyha-19297129/"
-# url_Litres = "https://www.litres.ru/book/anita-shapira-326732/istoriya-izrailya-ot-istokov-sionistskogo-dvizheniya-69510613/"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36"
 }
-
-
-
 
 
 class OldPage:
@@ -84,9 +81,6 @@ class OldPage:
             result = soup.find("div", id="spoiler_popup")
             content_sheet = self.create_content_sheet(result)
 
-            for r in content_sheet:
-                print(r)
-
             return content_sheet, info
 
 
@@ -121,7 +115,6 @@ class NewPage:
 
         characteristics = html_code.find_all('div', class_="CharacteristicsBlock-module__characteristic_2SKY6")
         for character in characteristics:
-            print(character.find('div', class_='CharacteristicsBlock-module__characteristic__title_3_QiC').get_text())
 
             match character.find('div', class_='CharacteristicsBlock-module__characteristic__title_3_QiC').get_text():
                 case "Дата перевода: ":
@@ -154,7 +147,7 @@ class NewPage:
 
 def parse(url: str):
     service = Service(
-        executable_path=r"D:\Projects\python\LotBook\tgbot\utiles\questions\firefox_driver\geckodriver.exe")
+        executable_path=os.getcwd() + r"\tgbot\utiles\questions\firefox_driver\geckodriver.exe")
     options = webdriver.FirefoxOptions()
     options.set_preference("general.useragent.override", headers["User-Agent"])
     driver = webdriver.Firefox(service=service, options=options)
@@ -162,9 +155,12 @@ def parse(url: str):
     try:
         page = NewPage()
         content_sheet, info = page.webdriver_parse(url, driver)
+        if not content_sheet: raise ErrorTableOfContentEmpty
         print("Успешно распашена новая страница!")
-
         return content_sheet, info
+
+    except ErrorTableOfContentEmpty:
+        raise ErrorTableOfContentEmpty
 
     except Exception as ex:
         print(ex)
@@ -180,6 +176,7 @@ def parse(url: str):
             print("Ошибка. Проверьте есть ли на этой странице оглавление и остальная информация о книге "
                   "корректна. На странице должны присутствовать: 'Оглавление', 'Автор', 'Объем', 'Дата перевода' или "
                   "'Дата написания', а также ISBN.")
+            raise ErrorParsePage
     finally:
         driver.close()
         driver.quit()
