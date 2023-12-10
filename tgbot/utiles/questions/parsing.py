@@ -16,7 +16,8 @@ headers = {
 
 class OldPage:
 
-    def create_content_sheet(self, html_code):
+    @staticmethod
+    def create_content_sheet(html_code):
         soup = html_code
 
         result = []
@@ -47,8 +48,8 @@ class OldPage:
 
         return result
 
-
-    def parse_info(self, html_code):
+    @staticmethod
+    def parse_info(html_code):
         info = {
             "title": html_code.find('h1', itemprop="name").get_text(),
             "autor": html_code.find('div', class_="biblio_book_author").get_text()[6:],
@@ -63,7 +64,8 @@ class OldPage:
 
         return info
 
-    def webdriver_parse(self, url, driver):
+    @staticmethod
+    def webdriver_parse(url, driver):
 
             driver.get(url=url)
             # Скролим до оглавления
@@ -77,16 +79,16 @@ class OldPage:
                 print("Элемент не найден")
             # Парсим оглавление
             soup = BeautifulSoup(driver.page_source, "html.parser")
-            info = self.parse_info(soup)
+            info = OldPage.parse_info(soup)
             result = soup.find("div", id="spoiler_popup")
-            content_sheet = self.create_content_sheet(result)
+            content_sheet = OldPage.create_content_sheet(result)
 
             return content_sheet, info
 
 
 class NewPage:
-
-    def create_content_sheet(self, html_code):
+    @staticmethod
+    def create_content_sheet(html_code):
         soup = html_code
 
         result = []
@@ -103,8 +105,8 @@ class NewPage:
 
         return result
 
-
-    def parse_info(self, html_code):
+    @staticmethod
+    def parse_info(html_code):
         info = {
             "title": html_code.find('h1', class_="BookCard-module__book__mainInfo__title_2zz4M").get_text(),
             "autor": html_code.select_one('div.BookAuthor-module__author__info_Kgg0a span').get_text(),
@@ -127,7 +129,8 @@ class NewPage:
 
         return info
 
-    def webdriver_parse(self, url, driver):
+    @staticmethod
+    def webdriver_parse(url, driver):
 
             driver.get(url=url)
             # Скролим до оглавления
@@ -138,9 +141,9 @@ class NewPage:
             table_of_contents.click()
             # Парсим оглавление
             soup = BeautifulSoup(driver.page_source, "html.parser")
-            info = self.parse_info(soup)
+            info = NewPage.parse_info(soup)
             result = soup.find("div", class_="BookTableContent-module__bookTableContent_cOJ8T")
-            content_sheet = self.create_content_sheet(result)
+            content_sheet = NewPage.create_content_sheet(result)
 
             return content_sheet, info
 
@@ -153,10 +156,11 @@ def parse(url: str):
     driver = webdriver.Firefox(service=service, options=options)
 
     try:
-        page = NewPage()
-        content_sheet, info = page.webdriver_parse(url, driver)
+        # page = NewPage()
+        content_sheet, info = NewPage.webdriver_parse(url, driver)
+        print(content_sheet)
         if not content_sheet: raise ErrorTableOfContentEmpty
-        print("Успешно распашена новая страница!")
+        print("Успешно распаршена новая страница!")
         return content_sheet, info
 
     except ErrorTableOfContentEmpty:
@@ -165,8 +169,8 @@ def parse(url: str):
     except Exception as ex:
         print(ex)
         try:
-            page = OldPage()
-            content_sheet, info = page.webdriver_parse(url, driver)
+            # page = OldPage()
+            content_sheet, info = OldPage.webdriver_parse(url, driver)
             print("Успешно распаршена старая страница!")
 
             return content_sheet, info

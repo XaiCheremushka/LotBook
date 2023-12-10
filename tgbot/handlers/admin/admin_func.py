@@ -8,7 +8,8 @@ from tgbot.utiles.questions.parsing import parse
 from tgbot.utiles.help_func.custom_exception import *
 
 
-async def admin_panel(message: types.Message):
+async def admin_panel(message: types.Message, state: FSMContext):
+    await state.set_state(StatesAdmin.admin)
     await message.answer("Выберите нужную команду", reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
 
 
@@ -22,7 +23,8 @@ async def add_book(message: types.Message, state: FSMContext):
 
 async def add_book_in_database(message: types.Message,  state: FSMContext):
     if message.text == "Отмена":
-        await message.answer("Вы вышли в меню админ-панели.", reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
+        await message.answer("Вы вышли в меню админ-панели.",
+                             reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
         await state.set_state(None)
     else:
         url = message.text
@@ -35,11 +37,11 @@ async def add_book_in_database(message: types.Message,  state: FSMContext):
             await create_book(content_sheet, info)
             await message.answer('Данные успешно отправлены.',
                                  reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
-            await state.set_state(None)
+            await state.set_state(StatesAdmin.admin)
         except ErrorSendData:
             await message.answer('Ошибка отправки данных. Попробуйте отправить позже, либо напишите администратору.',
                                  reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
-            await state.set_state(None)
+            await state.set_state(StatesAdmin.admin)
         except ErrorTableOfContentEmpty:
             await message.answer("Ошибка парсинга страницы. На данной странице отсутствует оглавление."
                                  "\nОтправьте другую ссылку.",
@@ -54,8 +56,9 @@ async def add_book_in_database(message: types.Message,  state: FSMContext):
             await state.set_state(StatesAdmin.add_book_url)
 
 
-
 def register_commands(dp: Dispatcher):
     dp.register_message_handler(admin_panel, commands='admin')
-    dp.register_message_handler(add_book, text="Добавить книгу")
-    dp.register_message_handler(add_book_in_database, content_types=types.ContentType.TEXT, state=StatesAdmin.add_book_url)
+    dp.register_message_handler(add_book, text="Добавить книгу", state=StatesAdmin.admin)
+    dp.register_message_handler(add_book_in_database,
+                                content_types=types.ContentType.TEXT,
+                                state=StatesAdmin.add_book_url)

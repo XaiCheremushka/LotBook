@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import List
 
@@ -32,30 +33,108 @@ async def create_book(content_sheet, info) -> None:
         })
 
         for i in range(0, len(content_sheet)):
+            await firestore_client.collection("Books").document(info["title"]).collection(
+                    "section 1").document(str(i + 1) + " " + content_sheet[i][0]).set({})
             if isinstance(content_sheet[i], list) and len(content_sheet[i]) > 1:
-                for j in range(1, len(content_sheet[i])):
+                for j in range(0, len(content_sheet[i])):
+                    await firestore_client.collection("Books").document(info["title"]).collection(
+                              "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
+                              "section 2").document(str(j + 1) + " " + content_sheet[i][j][0]).set({})
                     if isinstance(content_sheet[i][j], list) and len(content_sheet[i][j]) > 1:
-                        for l in range(1, len(content_sheet[i][j])):
+                        for l in range(0, len(content_sheet[i][j])):
+                            await firestore_client.collection("Books").document(info["title"]).collection(
+                                    "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
+                                    "section 2").document(str(j + 1) + " " + content_sheet[i][j][0]).collection(
+                                    "section 3").document(str(l + 1) + " " + content_sheet[i][j][l][0]).set({})
                             if isinstance(content_sheet[i][j][l], list) and len(content_sheet[i][j][l]) > 1:
                                 # Можно увеличить дерево в будущем, дописав код здесь
                                 await firestore_client.collection("Books").document(info["title"]).collection(
-                                    str(i + 1) + " " + content_sheet[i][0]).document(
-                                    str(j + 1) + " " + content_sheet[i][j][0]).collection(
-                                    str(l + 1) + " " + content_sheet[i][j][l][0]).document().set({})
+                                    "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
+                                    "section 2").document(str(j + 1) + " " + content_sheet[i][j][0]).collection(
+                                    "section 3").document(str(l + 1) + " " + content_sheet[i][j][l][0]).collection(
+                                    "questions").document().set({})
                             else:
                                 await firestore_client.collection("Books").document(info["title"]).collection(
-                                    str(i + 1) + " " + content_sheet[i][0]).document(
-                                    str(j + 1) + " " + content_sheet[i][j][0]).collection(
-                                    str(l + 1) + " " + content_sheet[i][j][l][0]).document().set({})
+                                    "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
+                                    "section 2").document(str(j + 1) + " " + content_sheet[i][j][0]).collection(
+                                    "section 3").document(str(l + 1) + " " + content_sheet[i][j][l][0]).collection(
+                                    "questions").document().set({})
 
                     else:
                         await firestore_client.collection("Books").document(info["title"]).collection(
-                            str(i + 1) + " " + content_sheet[i][0]).document(str(j + 1) + " " + content_sheet[i][j][0]).collection(
-                            "questions").document().set({})
+                              "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
+                              "section 2").document(str(j + 1) + " " + content_sheet[i][j][0]).collection(
+                              "questions").document().set({})
 
             else:
                 await firestore_client.collection("Books").document(info["title"]).collection(
-                    str(i + 1) + " " + content_sheet[i][0]).document().set({})
+                    "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
+                    "questions").document().set({})
+    except Exception as ex:
+        print(ex)
+        raise ErrorSendData
+
+
+async def get_all_names_of_books() -> List:
+    docs = firestore_client.collection("Books").stream()
+
+    return [doc.id async for doc in docs]
+
+
+async def get_all_sections_1_of_book(name: str) -> List:
+
+    docs = firestore_client.collection("Books").document(name).collection("section 1").stream()
+    result = [doc.id async for doc in docs]
+
+    if result:
+        return result
+    else:
+        raise ErrorGetSectionData
+
+
+async def get_all_sections_2_of_book(name, section_1: str) -> List:
+    docs = firestore_client.collection("Books").document(name).collection("section 1").document(
+        section_1).collection("section 2").stream()
+    result = [doc.id async for doc in docs]
+
+    if result:
+        return result
+    else:
+        raise ErrorGetSectionData
+
+
+async def get_all_sections_3_of_book(name, section_1: str, section_2: str) -> List:
+
+    docs = firestore_client.collection("Books").document(name).collection("section 1").document(
+        section_1).collection("section 2").document(section_2).collection("section 3").stream()
+    result = [doc.id async for doc in docs]
+
+    if result:
+        return result
+    else:
+        raise ErrorGetSectionData
+
+
+async def set_question(name: str, question: str, answers: [], section_1: str, section_2: str = None, section_3: str = None) -> None:
+    try:
+        if section_3 is not None:
+            await firestore_client.collection("Books").document(name).collection("section 1").document(
+            section_1).collection("section 2").document(section_2).collection("section 3").document(section_3).collection(
+                "question").document(question).set({
+                answers[0]: True, answers[1]: False, answers[2]: False, answers[3]: False
+            })
+        elif section_2 is not None:
+            await firestore_client.collection("Books").document(name).collection("section 1").document(
+            section_1).collection("section 2").document(section_2).collection(
+                "question").document(question).set({
+                answers[0]: True, answers[1]: False, answers[2]: False, answers[3]: False
+            })
+        else:
+            await firestore_client.collection("Books").document(name).collection("section 1").document(
+                section_1).collection("section 2").document(section_2).collection(
+                "questions").document(question).set({
+                answers[0]: True, answers[1]: False, answers[2]: False, answers[3]: False
+            })
     except Exception as ex:
         print(ex)
         raise ErrorSendData
