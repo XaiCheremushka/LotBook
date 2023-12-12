@@ -6,17 +6,23 @@ from tgbot.handlers.buttons import show_button
 from tgbot.utiles.database import firebase
 from tgbot.states.user_states import StatesAdmin
 from tgbot.utiles.help_func.custom_exception import *
+from tgbot.utiles.help_func.other import remove_index_and_space, sort_elements_sheet_content
 from tgbot.utiles.questions import chatGPT as gpt
 from tgbot.utiles.secretData.config import config
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
 
+
 async def add_question_start(message: types.Message, state: FSMContext):
     """
     Функция add_question_start отображает инлайн-кнопки с выбором книги.
     """
-
     books = await firebase.get_all_names_of_books()
+    books = await sort_elements_sheet_content(books)
+    user_data = await state.get_data()
+
+    await bot.delete_message(chat_id=message.from_user.id,
+                             message_id=user_data.get("message_id"))
 
     buttons = [InlineKeyboardButton(books[i], callback_data=f"book_{i+1}") for i in range(0, len(books))]
     inline_keyboard = InlineKeyboardMarkup(row_width=1)
@@ -41,8 +47,9 @@ async def choice_book(callback_query: types.CallbackQuery, state: FSMContext):
      message_id = user_data.get("message_id")
      chat_id = callback_query.from_user.id
      sections = await firebase.get_all_sections_1_of_book(book)
+     sections = await sort_elements_sheet_content(sections)
 
-     buttons = [types.InlineKeyboardButton(sections[i],
+     buttons = [types.InlineKeyboardButton(await remove_index_and_space(sections[i]),
                                            callback_data=f"section_{i+1}") for i in range(0, len(sections))]
 
      inline_keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -68,7 +75,8 @@ async def choice_section_1(callback_query: types.CallbackQuery, state: FSMContex
 
     try:
         subsections = await firebase.get_all_sections_2_of_book(book, section_1)
-        buttons = [types.InlineKeyboardButton(subsections[i],
+        subsections = await sort_elements_sheet_content(subsections)
+        buttons = [types.InlineKeyboardButton(await remove_index_and_space(subsections[i]),
                                               callback_data=f"subsection_{i + 1}") for i in range(0, len(subsections))]
 
         inline_keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -82,7 +90,8 @@ async def choice_section_1(callback_query: types.CallbackQuery, state: FSMContex
         await state.update_data(book=book, section_1=section_1)
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
         await bot.send_message(chat_id=chat_id,
-                               text=f'Раздел: "{section_1}"\nВведите вопрос: ', reply_markup=show_button([]))
+                               text=f'Раздел: "{await remove_index_and_space(section_1)}"\n'
+                                    f'Введите вопрос: ', reply_markup=show_button([]))
         await state.set_state(StatesAdmin.add_question_name)
 
 
@@ -102,7 +111,8 @@ async def choice_section_2(callback_query: types.CallbackQuery, state: FSMContex
 
     try:
         sub_subsections = await firebase.get_all_sections_3_of_book(book, section_1, section_2)
-        buttons = [InlineKeyboardButton(sub_subsections[i],
+        sub_subsections = await sort_elements_sheet_content(sub_subsections)
+        buttons = [InlineKeyboardButton(await remove_index_and_space(sub_subsections[i]),
                                         callback_data=f"sub_subsection_{i + 1}") for i in range(0, len(sub_subsections))]
 
         inline_keyboard = InlineKeyboardMarkup(row_width=1)
@@ -115,7 +125,8 @@ async def choice_section_2(callback_query: types.CallbackQuery, state: FSMContex
         await state.update_data(book=book, section_1=section_1, section_2=section_2)
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
         await bot.send_message(chat_id=chat_id,
-                               text=f'Подраздел: "{section_2}"\nВведите вопрос: ', reply_markup=show_button([]))
+                               text=f'Подраздел: "{await remove_index_and_space(section_2)}"\n'
+                                    f'Введите вопрос: ', reply_markup=show_button([]))
         await state.set_state(StatesAdmin.add_question_name)
 
 
@@ -140,7 +151,8 @@ async def choice_section_3(callback_query: types.CallbackQuery, state: FSMContex
         firebase.create_book в дереве создания оглавления"""
         pass
         # sub_subsections = await firebase.get_all_sections_3_of_book(book, section_1, section_2)
-        # buttons = [types.InlineKeyboardButton(sub_subsections[i],
+        # sub_subsections = await sort_elements_sheet_content(sub_subsections)
+        # buttons = [types.InlineKeyboardButton(await remove_index_and_space(sub_subsections[i]),
         #                                       callback_data=f"sub_subsection_{i + 1}") for i in range(0, len(sub_subsections))]
         #
         # inline_keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -153,7 +165,8 @@ async def choice_section_3(callback_query: types.CallbackQuery, state: FSMContex
         await state.update_data(book=book, section_1=section_1, section_2=section_2, section_3=section_3)
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
         await bot.send_message(chat_id=chat_id,
-                               text=f'Раздел подраздела: "{section_3}"\nВведите вопрос: ', reply_markup=show_button([]))
+                               text=f'Раздел подраздела: "{await remove_index_and_space(section_3)}"\n'
+                                    f'Введите вопрос: ', reply_markup=show_button([]))
         await state.set_state(StatesAdmin.add_question_name)
 
 

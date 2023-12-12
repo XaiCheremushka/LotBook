@@ -10,7 +10,9 @@ from tgbot.utiles.help_func.custom_exception import *
 
 async def admin_panel(message: types.Message, state: FSMContext):
     await state.set_state(StatesAdmin.admin)
-    await message.answer("Выберите нужную команду", reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
+    sent_message = await message.answer("Выберите нужную команду", reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
+    message_id = sent_message.message_id
+    await state.update_data(message_id=message_id)
 
 
 async def add_book(message: types.Message, state: FSMContext):
