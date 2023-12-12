@@ -193,8 +193,12 @@ async def add_question_chatGPT(callback_query: types.CallbackQuery, state: FSMCo
 
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=user_data.get("message_id"))
     sent_message = await bot.send_message(chat_id=callback_query.from_user.id,
-                                          text=f"Сгенерированные варианты: \n{question}\n{true_answer}\n"
-                                               f"{false_answers[0]}\n{false_answers[1]}\n{false_answers[2]}",
+                                          text=f"Сгенерированные варианты: \n"
+                                               f"Вопрос: {question}\n"
+                                               f"a) {true_answer} - верный\n"
+                                               f"b) {false_answers[0]}\n"
+                                               f"c) {false_answers[1]}\n"
+                                               f"d) {false_answers[2]}",
                                           reply_markup=inline_keyboard)
     message_id = sent_message.message_id
     await state.update_data(message_id=message_id, false_answer_1=false_answers[0],

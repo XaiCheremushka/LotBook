@@ -8,7 +8,7 @@ from tgbot.utiles.secretData.config import config
 
 
 client = OpenAI(
-    api_key=config.OPENAI_API_KEY
+    api_key=config.OPENAI_API_KEY.get_secret_value()
 )
 
 
@@ -25,6 +25,12 @@ async def create_answers(book: str, question: str, true_answer: str):
                     {"role": "system", "content": "Пользователь тебе отправляет вопрос и правильный ответ к нему. "
                                               "А ты должен составить 3 неправильных ответа к нему по указанной книге."
                                               "Твой ответ должен выглядеть так: \nb) ответ\nc) ответ\nd) ответ"},
+                    {"role": "user", "content": f'Составь 3 неправильных ответа к книге "Взлёт и падение третьего '
+                                                f'рейха" по вопросу "Каким был род занятий отца Адольфа Гитлера?".'
+                                                f'Правильный ответ: Таможенный сборщик'},
+                    {"role": "assistant", "content": f'1) Фермер\n'
+                                                     f'2) Учитель\n'
+                                                     f'3) Сапожник'},
                     # Задаем вопрос боту
                     {"role": "user", "content": f'Составь 3 неправильных ответа к книге "{book}" по вопросу "{question}".'
                                                 f'Правильный ответ: {true_answer}'},
@@ -34,8 +40,8 @@ async def create_answers(book: str, question: str, true_answer: str):
 
     # response['choices'][0]['message']['content']
 
-    # print(chat_completion_resp.choices[0].message.content)
-    return response['choices'][0]['message']['content']
+    return response.choices[0].message.content
+    # return response['choices'][0]['message']['content']
 
 # asyncio.run(create_answers("Взлет и падение Третьего Рейха",
 #                            "Когда было заключено Мюнхенское соглашение по оккупации немцами Судетской области?",
