@@ -54,12 +54,7 @@ class OldPage:
             "title": html_code.find('h1', itemprop="name").get_text(),
             "autor": html_code.find('div', class_="biblio_book_author").get_text()[6:],
             "ISBN": html_code.select_one('div.biblio_book_info_detailed_right dd').get_text(),
-            "total_pages": re.findall(r'\d+', html_code.find('li', class_="volume").get_text())[0],
-            "date_of_publication": html_code.select_one(
-                'div.biblio_book_info_detailed_left dd:nth-of-type(2)') if html_code.select_one(
-                'div.biblio_book_info_detailed_left dt:nth-of-type(2)').get_text() in ["Дата перевода:",
-                                                                                       "Дата написания:"] else html_code.select_one(
-                'div.biblio_book_info_detailed_left dd:nth-of-type(3)')
+            "total_pages": re.findall(r'\d+', html_code.find('li', class_="volume").get_text())[0]
         }
 
         return info
@@ -119,9 +114,6 @@ class NewPage:
         for character in characteristics:
 
             match character.find('div', class_='CharacteristicsBlock-module__characteristic__title_3_QiC').get_text():
-                case "Дата перевода: ":
-                    print(character.find_all('span')[1].get_text())
-                    info["date_of_publication"] = character.find_all('span')[1].get_text()
                 case "Объем: ":
                     info["total_pages"] = re.findall(r'\d+', character.find_all('span')[1].get_text())[0]
                 case "ISBN: ":

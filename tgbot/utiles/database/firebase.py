@@ -27,7 +27,7 @@ async def create_book(content_sheet, info) -> None:
     """
     try:
         await firestore_client.collection("Books").document(info["title"]).set({
-            "ISBN": info["ISBN"], "autor": info["autor"], "total_pages": info["total_pages"], "date_of_publication": info["date_of_publication"]
+            "ISBN": info["ISBN"], "autor": info["autor"], "total_pages": info["total_pages"]
         })
 
         for i in range(0, len(content_sheet)):
