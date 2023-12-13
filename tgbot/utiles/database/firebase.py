@@ -1,9 +1,7 @@
-import asyncio
 import json
 from typing import List
 
 from google.cloud.firestore import AsyncClient
-# from google.cloud import firestore
 from google.oauth2 import service_account
 
 from tgbot.utiles.secretData.config import config
@@ -52,24 +50,24 @@ async def create_book(content_sheet, info) -> None:
                                     "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
                                     "section 2").document(str(j) + " " + content_sheet[i][j][0]).collection(
                                     "section 3").document(str(l) + " " + content_sheet[i][j][l][0]).collection(
-                                    "questions").document().set({})
+                                    "questions").document("empty").set({})
                             else:
                                 await firestore_client.collection("Books").document(info["title"]).collection(
                                     "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
                                     "section 2").document(str(j) + " " + content_sheet[i][j][0]).collection(
                                     "section 3").document(str(l) + " " + content_sheet[i][j][l][0]).collection(
-                                    "questions").document().set({})
+                                    "questions").document("empty").set({})
 
                     else:
                         await firestore_client.collection("Books").document(info["title"]).collection(
                               "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
                               "section 2").document(str(j) + " " + content_sheet[i][j][0]).collection(
-                              "questions").document().set({})
+                              "questions").document("empty").set({})
 
             else:
                 await firestore_client.collection("Books").document(info["title"]).collection(
                     "section 1").document(str(i + 1) + " " + content_sheet[i][0]).collection(
-                    "questions").document().set({})
+                    "questions").document("empty").set({})
     except Exception as ex:
         print(ex)
         raise ErrorSendData
@@ -115,24 +113,56 @@ async def get_all_sections_3_of_book(name, section_1: str, section_2: str) -> Li
         raise ErrorGetSectionData
 
 
-async def set_question(name: str, question: str, answers: [], section_1: str, section_2: str = None, section_3: str = None) -> None:
+async def get_all_sections_4_of_book(name, section_1: str, section_2: str, section_3: str) -> List:
+
+    docs = firestore_client.collection("Books").document(name).collection("section 1").document(
+        section_1).collection("section 2").document(section_2).collection("section 3").document(
+        section_3).collection("section 4").stream()
+    result = [doc.id async for doc in docs]
+
+    if result:
+        return result
+    else:
+        raise ErrorGetSectionData
+
+
+async def set_question(book: str, question: str, answers: [], section_1: str, section_2: str = None, section_3: str = None) -> None:
     try:
         if section_3 is not None:
-            await firestore_client.collection("Books").document(name).collection("section 1").document(
+            docs = firestore_client.collection("Books").document(book).collection("section 1").document(
             section_1).collection("section 2").document(section_2).collection("section 3").document(section_3).collection(
-                "questions").document(question).set({
+                "questions")
+
+            try:
+                await docs.document("empty").delete()
+            except Exception:
+                pass
+
+            await docs.document(question).set({
                 answers[0]: True, answers[1]: False, answers[2]: False, answers[3]: False
             })
         elif section_2 is not None:
-            await firestore_client.collection("Books").document(name).collection("section 1").document(
-            section_1).collection("section 2").document(section_2).collection(
-                "questions").document(question).set({
+            docs = firestore_client.collection("Books").document(book).collection("section 1").document(
+            section_1).collection("section 2").document(section_2).collection("questions")
+
+            try:
+                await docs.document("empty").delete()
+            except Exception:
+                pass
+
+            await docs.document(question).set({
                 answers[0]: True, answers[1]: False, answers[2]: False, answers[3]: False
             })
         else:
-            await firestore_client.collection("Books").document(name).collection("section 1").document(
-                section_1).collection("section 2").document(section_2).collection(
-                "questions").document(question).set({
+            docs = firestore_client.collection("Books").document(book).collection("section 1").document(
+                section_1).collection("questions")
+
+            try:
+                await docs.document("empty").delete()
+            except Exception:
+                pass
+
+            await docs.document(question).set({
                 answers[0]: True, answers[1]: False, answers[2]: False, answers[3]: False
             })
     except Exception as ex:
@@ -140,38 +170,33 @@ async def set_question(name: str, question: str, answers: [], section_1: str, se
         raise ErrorSendData
 
 
-
-async def get_table_of_content(book_name: str) -> List[List]:
-    """
-    Функция get_table_of_content возвращает оглавление указанной книги.
-
-    :param book_name: Название книги.
-    :param ISBN: ISBN.
-    :return: Оглавление в виде двумерного массива.
-    """
-    docs = await firestore_client.collection("Book").document(book_name).collection("sections").stream()
-    list = [[]]
-    async for doc in docs:
-        list[doc.id][doc.to_dict()]
-    return docs.to_dict()
+async def check_admins_id(user_id) -> bool:
+    docs = await firestore_client.collection("Admins").document("telegram_id").get()
+    if str(user_id) in docs.to_dict():
+        return True
+    else:
+        return False
 
 
-async def add_questions_to_book(book_name: str, questions: List[List], chapter: str = None) -> None:
-    """
-    Функция add_questions_to_book добавляет вопросы к указанной главе в книге.
+async def check_question_in_DB(question: str, book: str, section_1: str, section_2: str = None, section_3: str = None) -> bool:
+    if section_3 is not None:
+        docs = firestore_client.collection("Books").document(book).collection("section 1").document(
+            section_1).collection("section 2").document(section_2).collection("section 3").document(
+            section_3).collection("questions").stream()
+        async for doc in docs:
+            if doc.id == question:
+                return doc.id == question
 
-    :param book_name: Название книги.
-    :param questions: Вопросы с вариантами ответов к главе в виде двумерного массива ["вопрос"]["а","б","в","г"].
-    :param chapter: Название главы.
-    :return: None
-    """
-    # доделать
-    # if chapter is None:
-    #     for i in range(len())
-    #     await firestore_client.collection("Book").document(book_name).collection("sections").document(
-    #         f"{i} {list[i][0]}").document(f"{j} {list[i][j]}")
-    # else:
-    #     await firestore_client.collection("Book").document(book_name).collection("sections").document(
-    #         f"{i} {list[i][0]}").document(f"{j} {list[i][j]}")
-
-
+    elif section_2 is not None:
+        docs = firestore_client.collection("Books").document(book).collection("section 1").document(
+            section_1).collection("section 2").document(section_2).collection(
+            "questions").document(question).stream()
+        async for doc in docs:
+            if doc.id == question:
+                return doc.id == question
+    else:
+        docs = firestore_client.collection("Books").document(book).collection("section 1").document(
+            section_1).collection("questions").stream()
+        async for doc in docs:
+            if doc.id == question:
+                return doc.id == question

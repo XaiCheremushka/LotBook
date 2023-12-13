@@ -8,13 +8,6 @@ from tgbot.utiles.questions.parsing import parse
 from tgbot.utiles.help_func.custom_exception import *
 
 
-async def admin_panel(message: types.Message, state: FSMContext):
-    await state.set_state(StatesAdmin.admin)
-    sent_message = await message.answer("Выберите нужную команду", reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
-    message_id = sent_message.message_id
-    await state.update_data(message_id=message_id)
-
-
 async def add_book(message: types.Message, state: FSMContext):
     await message.answer("Отправьте страницу с книгой, которую хотите добавить, с сайта www.Litres.ru. Убедитесь, что "
                          "на странице присутствуют Оглавление, ISBN, Автор и Дата перевода/написания, а также "
@@ -59,7 +52,6 @@ async def add_book_in_database(message: types.Message,  state: FSMContext):
 
 
 def register_commands(dp: Dispatcher):
-    dp.register_message_handler(admin_panel, commands='admin')
     dp.register_message_handler(add_book, text="Добавить книгу", state=StatesAdmin.admin)
     dp.register_message_handler(add_book_in_database,
                                 content_types=types.ContentType.TEXT,

@@ -5,6 +5,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from tgbot.handlers.buttons import show_button
 from tgbot.utiles.database import firebase
 from tgbot.states.user_states import StatesAdmin
+from tgbot.utiles.database.firebase import check_question_in_DB
 from tgbot.utiles.help_func.custom_exception import *
 from tgbot.utiles.help_func.other import remove_index_and_space, sort_elements_sheet_content
 from tgbot.utiles.questions import chatGPT as gpt
@@ -54,6 +55,7 @@ async def choice_book(callback_query: types.CallbackQuery, state: FSMContext):
 
      inline_keyboard = types.InlineKeyboardMarkup(row_width=1)
      inline_keyboard.add(*buttons)
+     inline_keyboard.add(InlineKeyboardButton("Начать выбор заново", callback_data="back_to_choice_books"))
 
      await state.update_data(book=book, sections=sections)
      await bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=inline_keyboard)
@@ -74,6 +76,7 @@ async def choice_section_1(callback_query: types.CallbackQuery, state: FSMContex
     chat_id = callback_query.from_user.id
 
     try:
+        print("Переход к секции 2")
         subsections = await firebase.get_all_sections_2_of_book(book, section_1)
         subsections = await sort_elements_sheet_content(subsections)
         buttons = [types.InlineKeyboardButton(await remove_index_and_space(subsections[i]),
@@ -81,11 +84,12 @@ async def choice_section_1(callback_query: types.CallbackQuery, state: FSMContex
 
         inline_keyboard = types.InlineKeyboardMarkup(row_width=1)
         inline_keyboard.add(*buttons)
+        inline_keyboard.add(InlineKeyboardButton("Начать выбор заново", callback_data="back_to_choice_books"))
 
         await state.update_data(section_1=section_1, subsections=subsections)
         await bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=inline_keyboard)
     except ErrorGetSectionData:
-        print("348")
+        print("Выбор секции 1")
         await state.reset_data()
         await state.update_data(book=book, section_1=section_1)
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
@@ -110,6 +114,7 @@ async def choice_section_2(callback_query: types.CallbackQuery, state: FSMContex
     chat_id = callback_query.from_user.id
 
     try:
+        print("Переход к секции 3")
         sub_subsections = await firebase.get_all_sections_3_of_book(book, section_1, section_2)
         sub_subsections = await sort_elements_sheet_content(sub_subsections)
         buttons = [InlineKeyboardButton(await remove_index_and_space(sub_subsections[i]),
@@ -117,10 +122,12 @@ async def choice_section_2(callback_query: types.CallbackQuery, state: FSMContex
 
         inline_keyboard = InlineKeyboardMarkup(row_width=1)
         inline_keyboard.add(*buttons)
+        inline_keyboard.add(InlineKeyboardButton("Начать выбор заново", callback_data="back_to_choice_books"))
 
         await state.update_data(section_2=section_2, sub_subsections=sub_subsections)
         await bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=inline_keyboard)
     except ErrorGetSectionData:
+        print("Выбор секции 2")
         await state.reset_data()
         await state.update_data(book=book, section_1=section_1, section_2=section_2)
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
@@ -147,20 +154,22 @@ async def choice_section_3(callback_query: types.CallbackQuery, state: FSMContex
     chat_id = callback_query.from_user.id
 
     try:
-        """Если необходимо, то можно увеличить распознавание вложенности, но при этом нужно её также увеличить и в
-        firebase.create_book в дереве создания оглавления"""
+        print("Переход к секции 4")
+        sub_sub_subsections = await firebase.get_all_sections_4_of_book(book, section_1, section_2, section_3)
         pass
-        # sub_subsections = await firebase.get_all_sections_3_of_book(book, section_1, section_2)
+        # sub_sub_subsections = await firebase.get_all_sections_4_of_book(book, section_1, section_2)
         # sub_subsections = await sort_elements_sheet_content(sub_subsections)
         # buttons = [types.InlineKeyboardButton(await remove_index_and_space(sub_subsections[i]),
         #                                       callback_data=f"sub_subsection_{i + 1}") for i in range(0, len(sub_subsections))]
         #
         # inline_keyboard = types.InlineKeyboardMarkup(row_width=1)
         # inline_keyboard.add(*buttons)
+        # inline_keyboard.add(InlineKeyboardButton("Начать выбор заново", callback_data="back_to_choice_books"))
         #
         # await state.update_data(section_2=section_2, sub_subsections=sub_subsections)
         # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=inline_keyboard)
     except ErrorGetSectionData:
+        print("Выбор секции 3")
         await state.reset_data()
         await state.update_data(book=book, section_1=section_1, section_2=section_2, section_3=section_3)
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
@@ -170,10 +179,39 @@ async def choice_section_3(callback_query: types.CallbackQuery, state: FSMContex
         await state.set_state(StatesAdmin.add_question_name)
 
 
+async def back_to_choice_books(callback_query: types.CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    message_id = user_data.get("message_id")
+    await state.reset_data()
+
+    books = await firebase.get_all_names_of_books()
+    books = await sort_elements_sheet_content(books)
+
+    buttons = [InlineKeyboardButton(books[i], callback_data=f"book_{i + 1}") for i in range(0, len(books))]
+    inline_keyboard = InlineKeyboardMarkup(row_width=1)
+    inline_keyboard.add(*buttons)
+
+    await bot.edit_message_reply_markup(chat_id=callback_query.from_user.id,
+                                        message_id=message_id,
+                                        reply_markup=inline_keyboard)
+    await state.update_data(message_id=message_id,
+                            books=books)
+
+
 async def add_question_name(message: types.Message, state: FSMContext):
-    await state.update_data(question=message.text)
-    await message.answer("Введите правильный ответ:")
-    await state.set_state(StatesAdmin.add_question_true_answer)
+    user_data = await state.get_data()
+
+    if not await check_question_in_DB(question=message.text,
+                                      book=user_data.get("book"),
+                                      section_1=user_data.get("section_1"),
+                                      section_2=user_data.get("section_2"),
+                                      section_3=user_data.get("section_3")):
+
+        await state.update_data(question=message.text)
+        await message.answer("Введите правильный ответ:")
+        await state.set_state(StatesAdmin.add_question_true_answer)
+    else:
+        await message.answer("Такой вопрос уже есть, введите другой вопрос:")
 
 
 async def add_question_true_answer(message: types.Message, state: FSMContext):
@@ -233,27 +271,33 @@ async def add_question_add_in_database(callback_query: types.CallbackQuery, stat
         await firebase.set_question(book, question, answers, section_1, section_2, section_3)
         await bot.send_message(chat_id=callback_query.from_user.id,
                                text="Вопрос успешно добавлен")
-        await bot.send_message(chat_id=callback_query.from_user.id,
+        sent_message = await bot.send_message(chat_id=callback_query.from_user.id,
                                text="Выберите нужную команду",
                                reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
         await state.reset_data()
         await state.set_state(StatesAdmin.admin)
+        await state.update_data(message_id=sent_message.message_id)
     except ErrorSendData:
         await bot.send_message(chat_id=callback_query.from_user.id,
                                text="Не удалось отправить данные.")
-        await bot.send_message(chat_id=callback_query.from_user.id,
+        sent_message = await bot.send_message(chat_id=callback_query.from_user.id,
                                text="Выберите нужную команду",
                                reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
         await state.reset_data()
         await state.set_state(StatesAdmin.admin)
+        await state.update_data(message_id=sent_message.message_id)
 
 
 async def add_question_cancel(callback_query: types.CallbackQuery, state: FSMContext):
-    await bot.send_message(chat_id=callback_query.from_user.id,
+    user_data = await state.get_data()
+    await bot.delete_message(chat_id=callback_query.from_user.id,
+                             message_id=user_data.get("message_id"))
+    sent_message = await bot.send_message(chat_id=callback_query.from_user.id,
                            text="Выберите нужную команду",
                            reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
     await state.reset_data()
     await state.set_state(StatesAdmin.admin)
+    await state.update_data(message_id=sent_message.message_id)
 
 
 async def add_question_himself(callback_query: types.CallbackQuery, state: FSMContext):
@@ -304,6 +348,9 @@ def register_commands(dp: Dispatcher):
                                        state=StatesAdmin.add_question_choice)
     dp.register_callback_query_handler(choice_section_3,
                                        lambda c: c.data.startswith("sub_subsection_"),
+                                       state=StatesAdmin.add_question_choice)
+    dp.register_callback_query_handler(back_to_choice_books,
+                                       lambda c: c.data.startswith("back_to_choice_books"),
                                        state=StatesAdmin.add_question_choice)
     dp.register_message_handler(add_question_name, state=StatesAdmin.add_question_name)
     dp.register_message_handler(add_question_true_answer, state=StatesAdmin.add_question_true_answer)

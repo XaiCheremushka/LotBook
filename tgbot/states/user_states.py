@@ -2,6 +2,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
 class StatesAdmin(StatesGroup):
+    unknown_user = State()
+
     admin = State()
     add_book_url = State()
     add_book_waiting = State()
