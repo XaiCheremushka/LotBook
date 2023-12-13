@@ -14,3 +14,7 @@ class ErrorTableOfContentEmpty(ErrorParsePage):
 
 class ErrorSendData(QuestionError):
     pass
+
+
+class ErrorGetSectionData(QuestionError):
+    pass

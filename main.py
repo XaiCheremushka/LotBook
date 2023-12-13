@@ -1,10 +1,11 @@
 import logging
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
 
-from tgbot.handlers import standard_func, admin_func
+from tgbot.handlers import standard_func
+from tgbot.handlers.admin import admin_func, add_question_func
 from tgbot.utiles.secretData.config import config
 
 
@@ -25,6 +26,7 @@ async def on_startup(dispatcher):
     await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
     standard_func.register_commands(dispatcher)
     admin_func.register_commands(dispatcher)
+    add_question_func.register_commands(dispatcher)
 
 
 async def on_shutdown(dispatcher):
