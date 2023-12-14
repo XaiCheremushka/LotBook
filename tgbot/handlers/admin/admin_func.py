@@ -20,7 +20,7 @@ async def add_book_in_database(message: types.Message,  state: FSMContext):
     if message.text == "Отмена":
         await message.answer("Вы вышли в меню админ-панели.",
                              reply_markup=show_button(["Добавить книгу", "Добавить вопрос"]))
-        await state.set_state(None)
+        await state.set_state(StatesAdmin.admin)
     else:
         url = message.text
 
